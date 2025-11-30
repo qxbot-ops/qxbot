@@ -261,7 +261,7 @@ input[type="number"],select{padding:10px;border-radius:8px;border:1px solid rgba
   <div class="lock-title">QUOTEX OFFICIAL FREE AI BOT</div>
   <div class="lock-sub small">Enter PIN to unlock</div>
 
-  <input id="pinInput" class="lock-input" type="password" maxlength="10" placeholder="Enter PIN (e.g. 786786)">
+  <input id="pinInput" class="lock-input" type="password" maxlength="10" placeholder="Enter PIN (e.g.******)">
   <button class="unlock-btn" id="unlockBtn">UNLOCK</button>
   <div id="pinError" class="small" style="color:#ff7777;margin-top:10px;height:18px"></div>
 </div>
@@ -846,22 +846,17 @@ const firebaseDB = firebase.database();
     }
   }, 800);
 
-unlockBtn.addEventListener("click", () => {
+  unlockBtn.addEventListener("click", () => {
     const userPin = (pinInput.value || "").trim();
     if (btoa(userPin) === encodedPin) {
       antiBypass = false;
       lockScreen.style.opacity = "0";
-
-      // 🔥 YEH LINE ADD KARO — background ko clickable banata hai
-      lockScreen.style.pointerEvents = "none";
-
       setTimeout(() => (lockScreen.style.display = "none"), 300);
     } else {
       pinError.textContent = "Invalid PIN";
       setTimeout(() => (pinError.textContent = ""), 1500);
     }
-});
-
+  });
 
   function playBeep(freq, duration){
     const d = duration||140; const f = freq||880;
