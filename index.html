@@ -1,0 +1,883 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quotex Official Free AI Bot — Live</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase (v8) -->
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+:root{
+  --bg:#070916; --panel:#0f1724; --muted:#9fb0c9; --accent:#2fb0ff; --up:#10b981; --down:#ff6b6b;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#05060d,#081022);color:#eaf4ff; -webkit-font-smoothing:antialiased}
+.hide{display:none}
+
+/* CHAT FLOAT BUTTON + BOX */
+#chatBtn{
+  position:fixed; bottom:22px; right:22px; width:62px; height:62px;
+  background:linear-gradient(180deg,var(--accent),#018fd6); border-radius:50%; display:flex;
+  align-items:center; justify-content:center; font-size:26px;
+  color:white; cursor:pointer; box-shadow:0 10px 25px rgba(0,0,0,0.4);
+  z-index:99999; transition:transform .18s;
+}
+#chatBtn:hover{ transform:scale(1.06); }
+
+#chatBox{
+  position:fixed; bottom:100px; right:22px; width:340px; height:460px;
+  background:#071227; border-radius:14px; border:1px solid rgba(255,255,255,0.06);
+  display:none; flex-direction:column; overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,0.55); z-index:99999;
+}
+
+/* chat header */
+.chat-head{
+  background:linear-gradient(90deg,var(--accent),#0076d6); padding:12px 14px; font-weight:700; color:white; display:flex;align-items:center;gap:10px;
+}
+.chat-head .title{flex:1;text-align:left}
+.chat-head .close{cursor:pointer;padding:6px;border-radius:8px;background:rgba(255,255,255,0.08)}
+
+/* body + messages */
+.chat-body{
+  flex:1; padding:12px; overflow-y:auto; color:white; font-size:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+}
+.msg{
+  max-width:80%; padding:8px 12px; border-radius:10px; margin-bottom:8px; line-height:1.35;
+  word-break:break-word;
+}
+.me{ background:linear-gradient(90deg,var(--accent),#0069d6); color:black; margin-left:auto; }
+.admin{ background:#0f1724; border:1px solid rgba(255,255,255,0.04); margin-right:auto; color:#eaf4ff; }
+
+/* input area */
+.chat-input{
+  display:flex; border-top:1px solid rgba(255,255,255,0.03); padding:10px; gap:8px; background:#041021;
+}
+.chat-input input{
+  flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); outline:none; background:#071227; color:white;
+}
+.chat-input button{
+  width:76px; border-radius:10px; background:linear-gradient(90deg,var(--accent),#0076d6); border:none; color:white; font-weight:700; cursor:pointer;
+}
+
+/* LOCK SCREEN */
+.lock-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(2,6,23,0.95),rgba(2,6,23,0.95));z-index:9999}
+.lock-box{width:92%;max-width:420px;background:linear-gradient(180deg,#0b1220,#071227);padding:28px;border-radius:16px;box-shadow:0 20px 60px rgba(2,6,23,0.7);text-align:center}
+.lock-logo{width:86px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto}
+.lock-title{color:var(--accent);font-weight:700;margin-bottom:6px}
+.lock-sub{color:var(--muted);margin-bottom:16px}
+.lock-input{width:100%;padding:12px;border-radius:10px;border:none;background:#071228;color:#eaf4ff;font-size:16px;margin-bottom:12px;text-align:center}
+.unlock-btn{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#0076d6);color:#fff;font-weight:700;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+
+/* APP LAYOUT */
+.app-root{min-height:100vh;display:flex;flex-direction:column}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:linear-gradient(180deg,#071229,#061027);border-bottom:1px solid rgba(255,255,255,0.03);position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo-svg{height:36px;width:auto}
+.brand{display:flex;flex-direction:column}
+.brand .name{font-weight:700;letter-spacing:1px}
+.brand .sub{font-size:12px;color:var(--muted)}
+.header-right{display:flex;align-items:center;gap:10px}
+.bell{background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;display:flex;align-items:center;gap:8px}
+
+/* MAIN */
+.main{display:flex;gap:16px;padding:18px;align-items:flex-start;flex-wrap:wrap}
+.controls{width:360px;max-width:100%;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+.controls h3{margin:0 0 12px 0}
+.row{margin-bottom:12px;display:flex;flex-direction:column}
+label{font-size:13px;color:var(--muted);margin-bottom:6px}
+input[type="number"],select{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:#081024;color:#eaf4ff;font-size:14px}
+.controls .actions{display:flex;gap:10px;align-items:center}
+.btn{padding:10px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+.btn-primary{background:linear-gradient(90deg,var(--accent),#0069d6);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03)}
+
+/* SIGNALS & CHART */
+.area{flex:1;min-width:320px;display:flex;flex-direction:column;gap:12px}
+.active-signal{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.02));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+.active-signal.up{border-left:6px solid var(--up)}
+.active-signal.down{border-left:6px solid var(--down)}
+.sig-left{display:flex;flex-direction:column;gap:6px}
+.sig-type{font-size:18px;font-weight:800}
+.sig-pair{color:var(--muted)}
+.sig-chart{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:8px;display:inline-block;color:#cfe8ff;margin-top:6px}
+.sig-right{text-align:right}
+.conf{font-weight:800;font-size:18px}
+.sig-time{color:var(--muted);font-size:13px}
+
+/* chart */
+.chart-box{background:linear-gradient(180deg,#07131f,#041021);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+#chart{width:100%;height:220px;background:transparent;display:block}
+
+/* history */
+.history{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.02));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+.history h4{margin:0 0 8px 0}
+.hist-list{list-style:none;padding:0;margin:0;max-height:220px;overflow:auto}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.02)}
+.hist-item.up{background:rgba(16,185,129,0.06)}
+.hist-item.down{background:rgba(255,107,107,0.06)}
+
+/* toggles */
+.switch{display:inline-flex;align-items:center;gap:8px}
+.toggle{width:44px;height:26px;background:rgba(255,255,255,0.06);border-radius:999px;position:relative;cursor:pointer}
+.toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:all .18s ease}
+.toggle.on{background:linear-gradient(90deg,var(--accent),#0076d6)}
+.toggle.on .knob{left:21px}
+
+/* animations */
+.pulse{animation:pulse 1.4s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+
+/* responsive */
+@media (max-width:900px){
+  .main{flex-direction:column;padding:12px}
+  .controls{width:100%}
+  .area{width:100%}
+}
+.chat-float {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg,#4e54c8,#8f94fb);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(78,84,200,0.6);
+  z-index: 99999;
+}
+
+.chat-icon {
+  width: 32px;
+  filter: brightness(20);
+}
+
+#chatBubble {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #fff;
+  color: #4e54c8;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  min-width: 28px;
+  text-align: center;
+  box-shadow: 0 0 12px rgba(255,255,255,0.9);
+  display: none;
+  animation: pop 0.25s ease-out;
+}
+#chatBtn {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background: linear-gradient(135deg, #4d4dff, #6f00ff);
+  color: #fff;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  font-size: 32px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(100, 50, 255, 0.7);
+}
+
+#premiumBadge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  min-width: 24px;
+  height: 24px;
+  background: white;
+  color: #4d4dff;
+  font-weight: 700;
+  border-radius: 50%;
+  display: none;
+  text-align: center;
+  font-size: 13px;
+  line-height: 24px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.9);
+}
+
+@keyframes pop {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="app-root">
+
+  <!-- CHAT FLOAT -->
+
+  <div id="chatBtn" title="Support chat" class="chat-float">
+  💬
+  <span id="premiumBadge"></span>
+</div>
+
+
+  <div id="chatBox" aria-hidden="true">
+    <div class="chat-head">
+      <div class="title">Support Chat</div>
+      <div id="chatClose" class="close">✕</div>
+    </div>
+    <div id="chatMessages" class="chat-body"></div>
+    <div class="chat-input">
+      <input id="chatInput" placeholder="Type message..." autocomplete="off">
+      <button id="chatSend">Send</button>
+    </div>
+  </div>
+
+  <!-- LOCK -->
+
+  <div id="lockScreen" class="lock-screen">
+    <div class="lock-box">
+
+  <!-- REPLACED INLINE SVG WITH IMAGE -->
+  <img src="logo.svg" class="lock-logo" alt="logo">
+
+
+  <div class="lock-title">QUOTEX OFFICIAL FREE AI BOT</div>
+  <div class="lock-sub small">Enter PIN to unlock</div>
+
+  <input id="pinInput" class="lock-input" type="password" maxlength="10" placeholder="Enter PIN (e.g. 786786)">
+  <button class="unlock-btn" id="unlockBtn">UNLOCK</button>
+  <div id="pinError" class="small" style="color:#ff7777;margin-top:10px;height:18px"></div>
+</div>
+
+  </div>
+
+  <!-- HEADER -->
+
+  <header class="header">
+    <div class="header-left">
+
+
+  <!-- REPLACED INLINE SVG WITH IMAGE -->
+  <img src="logo.svg" class="logo-svg" alt="logo">
+
+
+  <div class="brand"><div class="name">QUOTEX</div><div class="sub">Official Free AI Bot</div></div>
+</div>
+
+<div class="header-right">
+  <div class="bell" title="notifications">🔔 <span id="bellCnt" style="margin-left:6px;background:#ff5a5a;padding:3px 7px;border-radius:999px;font-size:12px;color:white">3</span></div>
+</div>
+
+
+  </header>
+
+  <!-- MAIN -->
+
+  <main class="main">
+
+
+<!-- CONTROLS -->
+<aside class="controls">
+  <h3>Signal Controls</h3>
+
+  <div class="row">
+    <label>Trade Time (seconds)</label>
+    <input id="tradeTime" type="number" min="3" max="600" value="15">
+  </div>
+
+  <div class="row">
+    <label>Chart Type</label>
+    <select id="chartType">
+      <option>Candlestick</option>
+      <option>Line</option>
+      <option>Area</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <label>Currency Pair</label>
+    <select id="pairSelect">
+
+
+<option>AUD/JPY (OTC)</option>
+<option>GBP/USD (OTC)</option>
+<option>USD/PKR (OTC)</option>
+<option>GBP/CHF (OTC)</option>
+<option>USD/BDT (OTC)</option>
+<option>AUD/USD (OTC)</option>
+<option>GBP/JPY (OTC)</option>
+<option>EUR/GBP (OTC)</option>
+<option>USD/INR (OTC)</option>
+<option>AUD/CHF (OTC)</option>
+<option>EUR/AUD (OTC)</option>
+
+<option>GBP/AUD (OTC)</option>
+<option>AUD/CHF (OTC)</option>
+<option>USD/BRL (OTC)</option>
+<option>NZD/USD (OTC)</option>
+<option>USD/PHP (OTC)</option>
+<option>NZD/CAD (OTC)</option>
+<option>EUR/AUD (OTC)</option>
+<option>EUR/JPY (OTC)</option>
+<option>EUR/CAD (OTC)</option>
+<option>GBP/NZD (OTC)</option>
+<option>USD/EGP (OTC)</option>
+<option>EUR/CHF (OTC)</option>
+
+<option>CHF/JPY (OTC)</option>
+<option>AUD/CAD (OTC)</option>
+<option>CAD/CHF (OTC)</option>
+<option>EUR/USD (OTC)</option>
+<option>NZD/CHF (OTC)</option>
+<option>NZD/JPY (OTC)</option>
+<option>USD/ARS (OTC)</option>
+<option>USD/CAD (OTC)</option>
+<option>USD/CHF (OTC)</option>
+<option>USD/COP (OTC)</option>
+<option>USD/DZD (OTC)</option>
+<option>USD/IDR (OTC)</option>
+
+<option>USD/JPY (OTC)</option>
+<option>USD/MXN (OTC)</option>
+<option>USD/TRY (OTC)</option>
+<option>CAD/JPY (OTC)</option>
+<option>EUR/NZD (OTC)</option>
+<option>USD/ZAR (OTC)</option>
+<option>EUR/SGD (OTC)</option>
+<option>GBP/CAD (OTC)</option>
+<option>AUD/NZD (OTC)</option>
+
+
+    </select>
+  </div>
+
+  <div class="row actions">
+    <button id="getBtn" class="btn btn-primary">Get Signal</button>
+    <button id="clearBtn" class="btn btn-ghost">Clear</button>
+  </div>
+
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <div class="switch"><div>Auto 60s</div><div id="autoToggle" class="toggle"><div class="knob"></div></div></div>
+    <div class="switch"><div>90% Winrate Mode</div><div id="winToggle" class="toggle"><div class="knob"></div></div></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+      <button id="enableSound" class="btn btn-ghost">Enable Sound</button>
+      <button id="enableVib" class="btn btn-ghost">Enable Vibration</button>
+    </div>
+    <div class="small muted" id="statusMsg" style="margin-top:8px;color:var(--muted)">Tip: Press SPACE to generate signal.</div>
+  </div>
+</aside>
+
+<!-- AREA: signals + chart + history -->
+<section class="area">
+
+  <div id="activeSignal" class="active-signal empty">
+    <div class="sig-left">
+      <div class="sig-type">No active signal</div>
+      <div class="sig-pair muted">—</div>
+      <div class="sig-chart chip">—</div>
+    </div>
+    <div class="sig-right">
+      <div class="conf muted">—</div>
+      <div class="sig-time muted">—</div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="history">
+    <h4>Signal History</h4>
+    <ul id="historyList" class="hist-list"></ul>
+  </div>
+
+</section>
+
+
+  </main>
+
+</div>
+
+<script>
+/* ===== Firebase init (single) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyA8o_D89o2YxmMkKrRcYrXTYzxwR_NClMw",
+  authDomain: "quotex-ai-bot-e23ba.firebaseapp.com",
+  databaseURL: "https://quotex-ai-bot-e23ba-default-rtdb.firebaseio.com",
+  projectId: "quotex-ai-bot-e23ba",
+  storageBucket: "quotex-ai-bot-e23ba.firebasestorage.app",
+  messagingSenderId: "316882975124",
+  appId: "1:316882975124:web:64818d26a9f15b2875b781",
+  measurementId: "G-LCGF8HHP6H"
+};
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const firebaseDB = firebase.database();
+
+/* ===== Chat logic ===== */
+(function(){
+  const chatBtn = document.getElementById("chatBtn");
+  const chatBox = document.getElementById("chatBox");
+  const chatMessages = document.getElementById("chatMessages");
+  const chatSend = document.getElementById("chatSend");
+  const chatInput = document.getElementById("chatInput");
+  const chatClose = document.getElementById("chatClose");
+
+  // ensure chat elements exist
+  if(!chatBtn || !chatBox || !chatMessages || !chatSend || !chatInput) return;
+
+  // Unique User ID
+  let USER_ID = localStorage.getItem("CHAT_UID");
+  if (!USER_ID){
+    USER_ID = "user_" + Math.random().toString(36).substring(2,9);
+    localStorage.setItem("CHAT_UID", USER_ID);
+  }
+
+  // Toggle Chat open/close
+  function openChat(){
+    chatBox.style.display = "flex";
+    chatBox.setAttribute("aria-hidden","false");
+    // focus input after open
+    setTimeout(()=>chatInput.focus(),80);
+  }
+  function closeChat(){
+    chatBox.style.display = "none";
+    chatBox.setAttribute("aria-hidden","true");
+  }
+  chatBtn.addEventListener("click", ()=> {
+    if(chatBox.style.display === "flex") closeChat(); else openChat();
+  });
+  chatClose.addEventListener("click", closeChat);
+
+  // scroll helper
+  function scrollBottom(){
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  // Render message
+  function renderMessage(d, key){
+    const div = document.createElement("div");
+    div.className = "msg " + (d.sender === "user" ? "me" : "admin");
+    div.textContent = d.msg;
+    // optional small time
+    const tm = new Date(d.time || Date.now());
+    const tspan = document.createElement("div");
+    tspan.style.fontSize = "11px";
+    tspan.style.opacity = "0.6";
+    tspan.style.marginTop = "6px";
+    tspan.textContent = tm.toLocaleString();
+    div.appendChild(tspan);
+    chatMessages.appendChild(div);
+    scrollBottom();
+  }
+
+  // Send message
+  function sendMsg(){
+    const txt = chatInput.value.trim();
+    if(!txt) return;
+    const ref = firebaseDB.ref("chats/" + USER_ID);
+    // push message
+    ref.push({
+      sender: "user",
+      msg: txt,
+      time: Date.now()
+    }, function(err){
+      // optional callback on error
+      if(err){
+        console.error("Firebase push error:", err);
+        alert("Message not sent (check console).");
+      }
+    });
+    chatInput.value = "";
+  }
+
+  chatSend.addEventListener("click", sendMsg);
+  chatInput.addEventListener("keypress", (e) => {
+    if(e.key === "Enter") sendMsg();
+  });
+
+  // Listen for incoming messages (both user's and admin replies)
+  const listenRef = firebaseDB.ref("chats/" + USER_ID);
+  // Fetch existing and listen to new additions
+  listenRef.on("child_added", snap => {
+    const d = snap.val();
+    renderMessage(d, snap.key);
+  });
+
+  // PREMIUM BADGE
+  const badge = document.createElement("div");
+  badge.id = "chatBadge";
+  badge.style.cssText = `
+    position:absolute;
+    top:-6px;
+    right:-6px;
+    background:white;
+    color:#4a46ff;
+    width:22px;
+    height:22px;
+    font-size:12px;
+    font-weight:bold;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border:2px solid #4a46ff;
+    box-shadow:0 0 10px rgba(255,255,255,0.8);
+    pointer-events:none;
+    display:none;
+  `;
+
+  // IMPORTANT — keeps chat icon in exact same spot
+  chatBtn.style.position = "fixed";  
+  chatBtn.style.zIndex = "99999";
+
+  chatBtn.appendChild(badge);
+
+
+  // UNREAD LOGIC
+  let unread = 0;
+
+  listenRef.on("child_added", snap => {
+    const d = snap.val();
+
+    if (d.sender !== "user" && chatBox.style.display !== "flex") {
+      unread++;
+      badge.textContent = unread;
+      badge.style.display = "flex";
+    }
+
+    if (chatBox.style.display === "flex") {
+      unread = 0;
+      badge.style.display = "none";
+    }
+  });
+
+  chatBtn.addEventListener("click", () => {
+    if (chatBox.style.display === "flex") {
+      unread = 0;
+      badge.style.display = "none";
+    }
+  });
+})();
+
+</script>
+
+<script>
+/* ===== App logic (original) ===== */
+(() => {
+  // DOM
+  const lockScreen = document.getElementById('lockScreen');
+  const pinInput = document.getElementById('pinInput');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const pinError = document.getElementById('pinError');
+
+  const getBtn = document.getElementById('getBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const tradeTimeEl = document.getElementById('tradeTime');
+  const chartTypeEl = document.getElementById('chartType');
+  const pairEl = document.getElementById('pairSelect');
+  const activeSignalEl = document.getElementById('activeSignal');
+  const historyList = document.getElementById('historyList');
+  const enableSoundBtn = document.getElementById('enableSound');
+  const enableVibBtn = document.getElementById('enableVib');
+  const statusMsg = document.getElementById('statusMsg');
+  const autoToggle = document.getElementById('autoToggle');
+  const winToggle = document.getElementById('winToggle');
+  const bellCnt = document.getElementById('bellCnt');
+
+  // state
+  let history = [];
+  let running = false;
+  let timer = null;
+  let timerVal = 0;
+  let autoMode = false;
+  let winMode = false;
+  let soundEnabled = false;
+  let vibEnabled = false;
+  let autoIntervalRef = null;
+
+  // WebAudio
+  let audioCtx = null;
+  function ensureAudio(){
+    if(audioCtx) return audioCtx;
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+    catch(e){ audioCtx = null; return null; }
+  }
+  function playBeep(duration=140,freq=880){
+    const ctx = ensureAudio();
+    if(!ctx) return;
+    if(ctx.state === 'suspended'){ ctx.resume().catch(()=>{}); }
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.value = 0.0001;
+    o.connect(g); g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.25, now + 0.01);
+    o.start(now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration/1000);
+    o.stop(now + duration/1000 + 0.02);
+  }
+
+  // Chart (simple line price simulation)
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  let cw, ch, dpr=window.devicePixelRatio||1;
+  function resizeCanvas(){
+    cw = canvas.clientWidth; ch = canvas.clientHeight;
+    canvas.width = cw * dpr; canvas.height = ch * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // simulated price series
+  let prices = [];
+  function initPrices(){
+    prices = [];
+    let p = 1.1000 + Math.random()*0.02;
+    for(let i=0;i<80;i++){
+      p += (Math.random()-0.5)*0.002;
+      prices.push(p);
+    }
+  }
+  initPrices();
+
+  function drawChart(){
+    // background
+    ctx.clearRect(0,0,cw,ch);
+    ctx.fillStyle = '#071226';
+    ctx.fillRect(0,0,cw,ch);
+
+    // compute scale
+    const max = Math.max(...prices);
+    const min = Math.min(...prices);
+    const pad = (max-min)*0.12 || 0.01;
+    const top = max + pad, bottom = min - pad;
+
+    // axis
+    const left = 10, right = cw-10, topY = 8, bottomY = ch-8;
+    // line
+    ctx.beginPath();
+    const step = (right-left)/(prices.length-1);
+    prices.forEach((pr,i)=>{
+      const x = left + i*step;
+      const y = bottomY - ( (pr - bottom) / (top - bottom) )*(bottomY-topY);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = '#2fb0ff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // fill under curve (gradient)
+    ctx.lineTo(right,bottomY);
+    ctx.lineTo(left,bottomY);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0,topY,0,bottomY);
+    grad.addColorStop(0,'rgba(47,176,255,0.12)');
+    grad.addColorStop(1,'rgba(47,176,255,0.02)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // latest price
+    const latest = prices[prices.length-1];
+    ctx.fillStyle = '#eaf4ff';
+    ctx.font = '13px Inter, Arial';
+    ctx.fillText('Price: ' + latest.toFixed(4), left+6, topY+14);
+  }
+
+  // price update every second, smoother
+  setInterval(()=>{
+    // small random walk
+    const last = prices[prices.length-1] || (1.1 + Math.random()*0.02);
+    let next = last + (Math.random()-0.5)*0.0015;
+    prices.push(next);
+    if(prices.length>120) prices.shift();
+    drawChart();
+  }, 1000);
+
+  // generate signal
+  function generateSignal(){
+    const last3 = history.slice(-3);
+    let bias = 0;
+    last3.forEach(s => bias += (s.type==='up'?0.12:-0.12));
+    let baseUp = 0.5 + bias;
+    if(winMode){
+      if(last3.length){
+        const lastDir = last3[last3.length-1].type;
+        baseUp = lastDir==='up' ? 0.9 : 0.1;
+      } else {
+        baseUp = 0.9;
+      }
+    }
+    const type = Math.random() < baseUp ? 'up' : 'down';
+    const sameCount = last3.filter(s => s.type===type).length;
+    let confidence = Math.round(60 + sameCount*8 + (type==='up'?2:-2) + (Math.random()*8 -4));
+    confidence = Math.max(40, Math.min(98, confidence));
+    return {
+      id: Date.now().toString(36),
+      type, pair: pairEl.value,
+      chart: chartTypeEl.value,
+      time: new Date().toLocaleTimeString(),
+      confidence
+    };
+  }
+
+  function renderActive(sig){
+    if(!sig){
+      activeSignalEl.className = 'active-signal empty';
+      activeSignalEl.innerHTML = `<div class="sig-left"><div class="sig-type">No active signal</div><div class="sig-pair muted">—</div><div class="sig-chart chip">—</div></div><div class="sig-right"><div class="conf muted">—</div><div class="sig-time muted">—</div></div>`;
+      return;
+    }
+    activeSignalEl.className = 'active-signal ' + sig.type + ' pulse';
+    activeSignalEl.innerHTML = `<div class="sig-left"><div class="sig-type">${sig.type==='up'?'BUY':'SELL'}</div><div class="sig-pair">${sig.pair}</div><div class="sig-chart">${sig.chart}</div></div><div class="sig-right"><div class="conf">${sig.confidence}%</div><div class="sig-time">${sig.time}</div></div>`;
+  }
+
+  function renderHistory(){
+    historyList.innerHTML = '';
+    history.slice().reverse().forEach(h=>{
+      const li = document.createElement('li');
+      li.className = 'hist-item ' + h.type;
+      li.innerHTML = `<div><strong style="margin-right:8px">${h.type==='up'?'↑':'↓'}</strong>${h.pair} <span style="background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:8px;margin-left:8px;font-size:12px">${h.chart}</span></div><div style="color:var(--muted)">${h.confidence}% • ${h.time}</div>`;
+      historyList.appendChild(li);
+    });
+  }
+
+  function beepAndVibrate(sig){
+    if(soundEnabled){
+      playBeep(sig.type==='up'?900:420, sig.type==='up'? 920:420);
+    }
+    if(vibEnabled && navigator.vibrate){
+      navigator.vibrate([80,40,80]);
+    }
+    bellCnt.textContent = Number(bellCnt.textContent || 0) + 1;
+    bellCnt.style.transform = 'scale(1.14)';
+    setTimeout(()=>{ bellCnt.style.transform = ''; },220);
+  }
+
+  function startSignal(){
+    if(running) return;
+    const tradeTime = Math.max(3, Math.min(600, parseInt(tradeTimeEl.value) || 15));
+    const sig = generateSignal();
+    history.push(sig); if(history.length>60) history.shift();
+    renderActive(sig); renderHistory();
+    beepAndVibrate(sig);
+    running = true; timerVal = tradeTime;
+    getBtn.textContent = `Running • ${timerVal}s`; getBtn.disabled = true;
+
+    timer = setInterval(()=>{
+      timerVal--;
+      getBtn.textContent = `Running • ${timerVal}s`;
+      if(timerVal <= 0){
+        clearInterval(timer); running=false; getBtn.textContent = 'Get Signal'; getBtn.disabled = false;
+        setTimeout(()=>{
+          const next = generateSignal();
+          history.push(next); if(history.length>60) history.shift();
+          renderActive(next); renderHistory();
+          beepAndVibrate(next);
+        }, 700);
+      }
+    },1000);
+  }
+
+  clearBtn.addEventListener('click', ()=>{
+    history=[]; renderHistory(); renderActive(null);
+  });
+
+  function toggleElem(el){
+    el.classList.toggle('on');
+    return el.classList.contains('on');
+  }
+  autoToggle.addEventListener('click', ()=>{
+    autoMode = toggleElem(autoToggle);
+    if(autoMode){
+      statusMsg.textContent = 'Auto 60s ON';
+      autoIntervalRef = setInterval(()=>{ if(!running) startSignal(); }, 60000);
+    } else {
+      statusMsg.textContent = 'Auto 60s OFF';
+      clearInterval(autoIntervalRef); autoIntervalRef = null;
+    }
+  });
+  winToggle.addEventListener('click', ()=>{ winMode = toggleElem(winToggle); statusMsg.textContent = winMode? '90% Winrate Mode ON' : '90% Mode OFF'; });
+
+  enableSoundBtn.addEventListener('click', ()=>{
+    const ctx = ensureAudio();
+    if(!ctx){ alert('Audio not supported'); return; }
+    ctx.resume().then(()=>{ playBeep(120,720); soundEnabled=true; enableSoundBtn.textContent='Sound On'; enableSoundBtn.disabled=true; }).catch(()=>{ soundEnabled=true; enableSoundBtn.textContent='Sound On'; enableSoundBtn.disabled=true; });
+  });
+  enableVibBtn.addEventListener('click', ()=>{
+    vibEnabled = true; enableVibBtn.textContent='Vibration On'; enableVibBtn.disabled=true;
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && !running){
+      e.preventDefault(); startSignal();
+    }
+  });
+
+  const encodedPin = btoa("XRP56UIO");
+  let antiBypass = true;
+
+  setInterval(() => {
+    if (document.getElementById("lockScreen") === null && antiBypass) {
+      const div = document.createElement("div");
+      div.id = "lockScreen";
+      div.className = "lock-screen";
+      div.innerHTML = `<div style="color:white;font-size:20px;margin:auto">🔒 Protected</div>`;
+      document.body.appendChild(div);
+    }
+  }, 800);
+
+  unlockBtn.addEventListener("click", () => {
+    const userPin = (pinInput.value || "").trim();
+    if (btoa(userPin) === encodedPin) {
+      antiBypass = false;
+      lockScreen.style.opacity = "0";
+      setTimeout(() => (lockScreen.style.display = "none"), 300);
+    } else {
+      pinError.textContent = "Invalid PIN";
+      setTimeout(() => (pinError.textContent = ""), 1500);
+    }
+  });
+
+  function playBeep(freq, duration){
+    const d = duration||140; const f = freq||880;
+    const ctx = ensureAudio(); if(!ctx) return;
+    if(ctx.state === 'suspended'){ ctx.resume().catch(()=>{}); }
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    o.connect(g); g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.25, now + 0.01);
+    o.start(now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + d/1000);
+    o.stop(now + d/1000 + 0.02);
+  }
+
+  drawChart(); renderActive(null); renderHistory();
+
+})();
+</script>
+
+</body>
+</html>
+
